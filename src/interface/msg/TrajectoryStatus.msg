@@ -1,0 +1,5 @@
+uint32 TRAJECTORY_BEGIN = 1
+uint32 TRAJECTORY_POINT = 2
+uint32 TRAJECTORY_END = 3
+
+uint32 status

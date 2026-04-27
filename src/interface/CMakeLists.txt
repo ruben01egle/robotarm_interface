@@ -6,10 +6,24 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  # "msg/AndereInfo.msg"
+  "msg/SystemState.msg"
+  "msg/TrajectoryStatus.msg"
+  "msg/HeartbeatQuery.msg"
+  "msg/Heartbeat.msg"
+  "msg/AxisData.msg"
+  "msg/TelemetryFrame.msg"
+  "msg/TelemetryBatch.msg"
+  "msg/TrajectoryFrame.msg"
+  "msg/TrajectoryBatch.msg"
+  "msg/TrajectoryQuery.msg"
+  "srv/CANFDTunnel.srv"
+  "srv/RequestAction.srv"
+  DEPENDENCIES builtin_interfaces std_msgs
 )
 
 if(BUILD_TESTING)

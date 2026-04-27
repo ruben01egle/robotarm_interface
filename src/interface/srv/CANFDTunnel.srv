@@ -1,0 +1,13 @@
+# Request
+uint32 can_id
+uint8 flags          # Bitmaske: Bit 0=Extended, Bit 1=FD, Bit 2=BRS
+uint8 len
+uint8[<=64] data
+---
+# Response
+bool success
+uint32 can_id
+uint8 flags
+uint8 len
+uint8[<=64] data
+uint8[64] error_msg

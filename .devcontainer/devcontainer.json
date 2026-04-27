@@ -1,0 +1,26 @@
+{
+    "name": "ROS 2 Development",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-python.python",
+                "ms-iot.vscode-ros",
+                "redhat.vscode-yaml",
+                "ms-vscode.cmake-tools"
+            ]
+        }
+    },
+    "workspaceMount": "source=${localWorkspaceFolder},target=/robotarm_interface,type=bind",
+    "workspaceFolder": "/robotarm_interface",
+    
+    "runArgs": [
+        "--network=host",
+        "--privileged"
+    ],
+    
+    "postCreateCommand": "rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y"
+}

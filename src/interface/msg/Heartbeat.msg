@@ -1,0 +1,3 @@
+uint32 query_id
+builtin_interfaces/Time original_sent_timestamp
+uint8[32] node_name

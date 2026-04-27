@@ -1,0 +1,16 @@
+uint32 ACTION_DISCONNECT = 1
+uint32 ACTION_ARM_ROBOT = 2
+uint32 ACTION_DISARM_ROBOT = 3
+uint32 ACTION_MOVE_ARM = 4
+uint32 ACTION_CONFIGURE = 5
+
+uint32 TYPE_START = 254
+uint32 TYPE_STOP = 255
+
+uint8[32] node_name      # who asks
+uint32 action_id       # what action
+uint32 request_type    # Start or Stop?
+---
+# Response
+bool success          # was the request granted?
+uint8[64] message        # optional reason
