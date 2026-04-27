@@ -11,6 +11,7 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/MotorParameter.msg"
   "msg/SystemState.msg"
   "msg/TrajectoryStatus.msg"
   "msg/HeartbeatQuery.msg"
@@ -23,6 +24,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/TrajectoryQuery.msg"
   "srv/CANFDTunnel.srv"
   "srv/RequestAction.srv"
+  "action/ConfigMotor.action"
+  "action/Mission.action"
   DEPENDENCIES builtin_interfaces std_msgs
 )
 

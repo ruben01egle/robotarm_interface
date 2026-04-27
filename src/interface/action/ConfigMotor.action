@@ -1,0 +1,12 @@
+# Goal
+uint32 axis
+MotorParameter request_list
+---
+# Result
+bool success
+MotorParameter actual_values 
+string error_message
+---
+# Feedback
+uint32 total_parameters
+uint32 successfully_set

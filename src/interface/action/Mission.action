@@ -1,0 +1,19 @@
+uint8 OPTION_SET_JOINT_ANGLES = 1
+uint8 OPTION_CSV = 2
+
+# Goal
+uint8 option
+# Option 1:
+float32[6] target_joint_angles
+# Option 2:
+string csv_path
+
+---
+# Result
+bool success
+string final_status
+---
+# Feedback
+string phase                # "PLANNING" or "EXECUTING"
+float32 planning_progress
+float32 execution_progress
