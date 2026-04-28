@@ -25,6 +25,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/CANFDTunnel.srv"
   "srv/RequestAction.srv"
   "action/ConfigMotor.action"
+  "action/ReadMotorConfigs.action"
   "action/Mission.action"
   DEPENDENCIES builtin_interfaces std_msgs
 )

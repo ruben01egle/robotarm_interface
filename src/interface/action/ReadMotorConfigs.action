@@ -1,0 +1,8 @@
+# Goal
+---
+# Result
+MotorParameter[] values
+bool success
+---
+# Feedback
+uint32 params_read
