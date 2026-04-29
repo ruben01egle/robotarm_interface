@@ -4,7 +4,7 @@ uint8 OPTION_CSV = 2
 # Goal
 uint8 option
 # Option 1:
-float32[6] target_joint_angles
+float32[] target_joint_angles
 # Option 2:
 string csv_path
 
