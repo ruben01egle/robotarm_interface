@@ -1,6 +1,0 @@
-uint32 TYPE_REQUEST_DATA = 1
-uint32 TYPE_START_ACK    = 2
-uint32 TYPE_END_REACHED  = 3
-uint32 TYPE_START        = 4
-uint32 TYPE_END          = 5
-uint32 TYPE_SINGLE_SHOT  = 6
