@@ -1,0 +1,6 @@
+uint32 trajectory_id
+uint32  msg_type
+
+uint32 current_hardware_idx
+uint32 received_until_idx
+uint32 request_next_count

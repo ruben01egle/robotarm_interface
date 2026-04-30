@@ -22,7 +22,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/TelemetryBatch.msg"
   "msg/TrajectoryFrame.msg"
   "msg/TrajectoryBatch.msg"
-  "msg/TrajectoryQuery.msg"
+  "msg/TrajectoryFeedback.msg"
   "srv/CANFDTunnel.srv"
   "srv/RequestAction.srv"
   "action/ConfigMotor.action"

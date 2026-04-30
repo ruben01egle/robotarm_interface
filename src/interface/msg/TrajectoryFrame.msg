@@ -5,3 +5,4 @@ AxisData axis3
 AxisData axis4
 AxisData axis5
 AxisData axis6
+float32 gripper

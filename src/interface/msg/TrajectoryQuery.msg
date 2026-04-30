@@ -1,4 +1,0 @@
-uint32 trajectory_id
-uint32 trajectory_status
-uint32 start_idx
-uint32 count
