@@ -31,7 +31,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/ReadMotorConfigs.action"
   "action/Mission.action"
   "action/PlanTrajectory.action"
-  "action/ExecuteTrajectory.action"
   DEPENDENCIES builtin_interfaces std_msgs
 )
 
