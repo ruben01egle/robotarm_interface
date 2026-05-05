@@ -1,0 +1,9 @@
+# Goal
+string csv_path
+---
+# Result
+bool success
+TrajectoryFrame[] trajectory
+---
+# Feedback
+float32 progress
