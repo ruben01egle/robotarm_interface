@@ -30,7 +30,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/ConfigMotor.action"
   "action/ReadMotorConfigs.action"
   "action/Mission.action"
-  "action/PlanTrajectory.action"
+  "action/PlanP2PJointSpace.action"
+  "action/PlanCSV.action"
   DEPENDENCIES builtin_interfaces std_msgs
 )
 
