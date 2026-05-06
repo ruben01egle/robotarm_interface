@@ -20,6 +20,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/HeartbeatQuery.msg"
   "msg/Heartbeat.msg"
   "msg/AxisData.msg"
+  "msg/JointAngles.msg"
   "msg/TelemetryFrame.msg"
   "msg/TelemetryBatch.msg"
   "msg/TrajectoryFrame.msg"
@@ -30,7 +31,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/ConfigMotor.action"
   "action/ReadMotorConfigs.action"
   "action/Mission.action"
-  "action/PlanP2PJointSpace.action"
+  "action/PlanJointSpace.action"
   "action/PlanCSV.action"
   DEPENDENCIES builtin_interfaces std_msgs
 )

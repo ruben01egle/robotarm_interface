@@ -8,6 +8,7 @@ float32[] target_joint_angles
 # Option 2:
 string csv_path
 
+float32 motion_scale
 ---
 # Result
 bool success

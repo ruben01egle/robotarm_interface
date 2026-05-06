@@ -1,5 +1,6 @@
 # Goal
-float32[] target_joint_angles
+JointAngles[] waypoints
+float32 motion_scale
 ---
 # Result
 bool success
