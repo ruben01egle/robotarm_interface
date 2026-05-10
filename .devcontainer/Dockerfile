@@ -1,4 +1,4 @@
-FROM ros:humble-ros-base
+FROM ros:kilted-ros-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
