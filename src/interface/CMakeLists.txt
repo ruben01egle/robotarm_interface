@@ -36,6 +36,14 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES builtin_interfaces std_msgs
 )
 
+set(PYTHON_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../../build_cpp.py")
+
+add_custom_target(run_custom_build_script ALL
+    COMMAND python3 ${PYTHON_SCRIPT}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../..
+    COMMENT "Run build_cpp.py..."
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
