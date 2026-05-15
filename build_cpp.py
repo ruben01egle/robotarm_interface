@@ -52,6 +52,8 @@ def create_common_header(msg_names):
 
 #pragma pack(push, 1)
 
+constexpr uint32_t UDP_MAGIC = {hex(MAGIC_BYTE)};
+
 // Automatically generated message types
 enum class MessageType : uint32_t {{
 {enum_str}
@@ -63,7 +65,7 @@ struct RosTimestamp {{
 }};
 
 struct PacketHeader {{
-    uint32_t    magic = {hex(MAGIC_BYTE)};
+    uint32_t    magic = UDP_MAGIC;
     MessageType msg_type;
     uint32_t    msg_id;
     uint32_t    payload_size;
