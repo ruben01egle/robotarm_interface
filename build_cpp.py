@@ -190,7 +190,7 @@ def generate_hpp(msg_name, fields, constants):
     size_expression = " + ".join(size_expr_parts) if size_expr_parts else "0"
     serialize_body = "\n".join(serialize_parts)
     deserialize_body = "\n".join(sequential_deserialize_parts)
-    constructor_initializers = ", ".join(initializer_list_parts)
+    initializer_str = f" : {', '.join(initializer_list_parts)}" if initializer_list_parts else ""
 
     if has_variable_array:
         fast_path_conditions = []
@@ -259,7 +259,7 @@ public:
             content += f"    {f_type} {f_name};{comment_str}\n"
 
     content += f"""
-    {msg_name}() : {constructor_initializers} {{
+    {msg_name}() {initializer_str} {{
         static_assert(std::is_trivially_copyable<{msg_name}>::value, 
                       "Error: {msg_name} contains non-trivially copyable types! memcpy is unsafe.");
     }}
