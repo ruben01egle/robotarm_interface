@@ -8,6 +8,7 @@ MAGIC_BYTE = 0xAA
 
 DEBUG_MODE = False
 
+# Erweiterung um 'Time' und 'builtin_interfaces/Time'
 TYPE_MAPPING = {
     'uint8': 'uint8_t',
     'uint16': 'uint16_t',
@@ -16,7 +17,9 @@ TYPE_MAPPING = {
     'float32': 'float',
     'float64': 'double',
     'bool': 'bool',
-    'time': 'RosTimestamp'
+    'time': 'RosTimestamp',
+    'Time': 'RosTimestamp',
+    'builtin_interfaces/Time': 'RosTimestamp'
 }
 
 TYPE_SIZES = {
@@ -86,7 +89,11 @@ def parse_msg_file(filepath):
             array_match = re.search(r'([^\[\]]+)\[(<=)?(\d*)\]', ros_full_type)
             
             if array_match:
-                base_type = array_match.group(1).split('/')[-1].strip()
+                # Erst im gesamten Mapping suchen, falls Namespace enthalten ist
+                base_type = ros_full_type
+                if base_type not in TYPE_MAPPING:
+                    base_type = array_match.group(1).split('/')[-1].strip()
+                
                 is_variable = array_match.group(2) == "<="
                 size = array_match.group(3).strip()
                 
@@ -98,8 +105,13 @@ def parse_msg_file(filepath):
                 else:
                     fields.append((cpp_type, f"{field_name}", True, False, int(size if size else 1), "", ""))
             else:
-                base_type = ros_full_type.split('/')[-1].strip()
-                cpp_type = TYPE_MAPPING.get(base_type, base_type)
+                # Erst voll aufgelöst prüfen, dann erst splitten
+                if ros_full_type in TYPE_MAPPING:
+                    cpp_type = TYPE_MAPPING[ros_full_type]
+                else:
+                    base_type = ros_full_type.split('/')[-1].strip()
+                    cpp_type = TYPE_MAPPING.get(base_type, base_type)
+                    
                 fields.append((cpp_type, field_name, False, False, 0, "", ""))
                 
     return fields, constants
@@ -107,7 +119,7 @@ def parse_msg_file(filepath):
 def generate_hpp(msg_name, fields, constants):
     includes = set()
     known_primitives = set(TYPE_MAPPING.values()) | {
-        "uint8_t", "uint16_t", "uint32_t", "int32_t", "float", "double", "bool"
+        "uint8_t", "uint16_t", "uint32_t", "int32_t", "float", "double", "bool", "RosTimestamp"
     }
 
     has_variable_array = False
@@ -127,7 +139,6 @@ def generate_hpp(msg_name, fields, constants):
     array_max_size_constants = []
     initializer_list_parts = []
 
-    # Mapping für Counter -> Max Size Konstante
     counter_to_max_size = {}
     for _, f_name, is_array, is_variable, max_size, counter_name, _ in fields:
         if is_array and is_variable:
@@ -139,9 +150,8 @@ def generate_hpp(msg_name, fields, constants):
         else:
             element_size = f"sizeof({f_type})"
 
-        # --- INITIALISIERUNGSLISTE FÜR KONSTRUKTOR ---
         if is_array:
-            initializer_list_parts.append(f"{f_name}{{}}") # Nulle das gesamte Array
+            initializer_list_parts.append(f"{f_name}{{}}")
         else:
             if f_type == "bool":
                 initializer_list_parts.append(f"{f_name}(false)")
@@ -150,7 +160,6 @@ def generate_hpp(msg_name, fields, constants):
             else:
                 initializer_list_parts.append(f"{f_name}(0)")
 
-        # --- SERIALIZE GENERIERUNG (SLOW PATH) ---
         if is_array:
             if is_variable:
                 size_expr_parts.append(f"({counter_name} * {element_size})")
@@ -165,7 +174,6 @@ def generate_hpp(msg_name, fields, constants):
             size_expr_parts.append(f"sizeof({f_type})")
             serialize_parts.append(f"        std::memcpy(dest + offset, &{f_name}, sizeof({f_type}));\n        offset += sizeof({f_type});")
 
-        # --- DESERIALIZE GENERIERUNG (SLOW PATH - STRIKT SEQUENTIELL) ---
         if is_array:
             if is_variable:
                 if f_type in TYPE_SIZES:
@@ -175,15 +183,12 @@ def generate_hpp(msg_name, fields, constants):
             else:
                 sequential_deserialize_parts.append(f"        if (offset + {max_size} * {element_size} > size) return false;\n        std::memcpy({f_name}, src + offset, {max_size} * {element_size});\n        offset += {max_size} * {element_size};")
         else:
-            # Primitiv-Feld einlesen
             sequential_deserialize_parts.append(f"        if (offset + sizeof({f_type}) > size) return false;\n        std::memcpy(&{f_name}, src + offset, sizeof({f_type}));\n        offset += sizeof({f_type});")
             
-            # KORREKTUR: Wenn DIESES Primitiv-Feld ein Zähler für ein folgendes Array ist, JETZT SOFORT prüfen!
             if f_name in counter_to_max_size:
                 const_macro_name, _ = counter_to_max_size[f_name]
                 sequential_deserialize_parts.append(f"        if ({f_name} > {const_macro_name}) return false;")
 
-    # Registriere die constexpr Definitionen für die Klassen-Kopfzeile
     for _, (const_macro_name, max_size) in counter_to_max_size.items():
         array_max_size_constants.append((const_macro_name, max_size))
 
@@ -259,7 +264,7 @@ public:
             content += f"    {f_type} {f_name};{comment_str}\n"
 
     content += f"""
-    {msg_name}() {initializer_str} {{
+    {msg_name}(){initializer_str} {{
         static_assert(std::is_trivially_copyable<{msg_name}>::value, 
                       "Error: {msg_name} contains non-trivially copyable types! memcpy is unsafe.");
     }}
