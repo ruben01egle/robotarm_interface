@@ -93,14 +93,14 @@ def parse_msg_file(filepath):
                 cpp_type = TYPE_MAPPING.get(base_type, base_type)
                 
                 if is_variable:
-                    fields.append(("uint32_t", f"{field_name}_count", False, False, 0, "", False))
-                    fields.append((cpp_type, f"{field_name}", True, True, int(size if size else 1), f"{field_name}_count", True))
+                    fields.append(("uint32_t", f"{field_name}_count", False, False, 0, "", "/* Auto-generated array counter */"))
+                    fields.append((cpp_type, f"{field_name}", True, True, int(size if size else 1), f"{field_name}_count", ""))
                 else:
-                    fields.append((cpp_type, f"{field_name}", True, False, int(size if size else 1), "", False))
+                    fields.append((cpp_type, f"{field_name}", True, False, int(size if size else 1), "", ""))
             else:
                 base_type = ros_full_type.split('/')[-1].strip()
                 cpp_type = TYPE_MAPPING.get(base_type, base_type)
-                fields.append((cpp_type, field_name, False, False, 0, "", False))
+                fields.append((cpp_type, field_name, False, False, 0, "", ""))
                 
     return fields, constants
 
@@ -125,8 +125,9 @@ def generate_hpp(msg_name, fields, constants):
     serialize_parts = []
     sequential_deserialize_parts = []
     array_max_size_constants = []
+    initializer_list_parts = []
 
-    # Mapping, um schnell herauszufinden, welcher Counter zu welchem Array gehört
+    # Mapping für Counter -> Max Size Konstante
     counter_to_max_size = {}
     for _, f_name, is_array, is_variable, max_size, counter_name, _ in fields:
         if is_array and is_variable:
@@ -137,6 +138,17 @@ def generate_hpp(msg_name, fields, constants):
             element_size = TYPE_SIZES[f_type]
         else:
             element_size = f"sizeof({f_type})"
+
+        # --- INITIALISIERUNGSLISTE FÜR KONSTRUKTOR ---
+        if is_array:
+            initializer_list_parts.append(f"{f_name}{{}}") # Nulle das gesamte Array
+        else:
+            if f_type == "bool":
+                initializer_list_parts.append(f"{f_name}(false)")
+            elif f_type == "RosTimestamp":
+                initializer_list_parts.append(f"{f_name}{{0, 0}}")
+            else:
+                initializer_list_parts.append(f"{f_name}(0)")
 
         # --- SERIALIZE GENERIERUNG (SLOW PATH) ---
         if is_array:
@@ -178,6 +190,7 @@ def generate_hpp(msg_name, fields, constants):
     size_expression = " + ".join(size_expr_parts) if size_expr_parts else "0"
     serialize_body = "\n".join(serialize_parts)
     deserialize_body = "\n".join(sequential_deserialize_parts)
+    constructor_initializers = ", ".join(initializer_list_parts)
 
     if has_variable_array:
         fast_path_conditions = []
@@ -187,14 +200,12 @@ def generate_hpp(msg_name, fields, constants):
 
         fast_path_cond_str = " && ".join(fast_path_conditions)
 
-        # Logik für get_serialized_size()
         smart_size_body = f"""        if ({fast_path_cond_str}) {{
             return sizeof({msg_name});
         }}
         return {size_expression};"""
 
-        smart_serialize_body = f"""
-        if ({fast_path_cond_str}) {{
+        smart_serialize_body = f"""        if ({fast_path_cond_str}) {{
             std::memcpy(dest, this, sizeof({msg_name}));
             return sizeof({msg_name});
         }}
@@ -203,8 +214,7 @@ def generate_hpp(msg_name, fields, constants):
 {serialize_body}
         return offset;"""
 
-        smart_deserialize_body = f"""
-        if (size == sizeof({msg_name})) {{
+        smart_deserialize_body = f"""        if (size == sizeof({msg_name})) {{
             std::memcpy(this, src, sizeof({msg_name}));
             return true;
         }}
@@ -226,6 +236,7 @@ def generate_hpp(msg_name, fields, constants):
     content = f"""#pragma once
 #include "ProtocolCommon.hpp"{include_str}
 #include <cstddef>
+#include <type_traits>
 
 #pragma pack(push, 1)
 class {msg_name} {{
@@ -236,18 +247,22 @@ public:
         for _, c_name, c_val in constants:
             content += f"    static constexpr uint32_t {c_name} = {c_val};\n"
         for const_macro_name, max_size in array_max_size_constants:
-            content += f"    static constexpr uint32_t {const_macro_name} = {max_size};\n"
+            content += f"    static constexpr uint32_t {const_macro_name} = {max_size}; // Auto-generated max array bounds\n"
         content += "\n"
 
     content += "    // Message Fields\n"
-    for f_type, f_name, is_array, _, max_size, _, _ in fields:
+    for f_type, f_name, is_array, _, max_size, _, comment in fields:
+        comment_str = f" {comment}" if comment else ""
         if is_array:
-            content += f"    {f_type} {f_name}[{max_size}];\n"
+            content += f"    {f_type} {f_name}[{max_size}];{comment_str}\n"
         else:
-            content += f"    {f_type} {f_name};\n"
+            content += f"    {f_type} {f_name};{comment_str}\n"
 
     content += f"""
-    {msg_name}() = default;
+    {msg_name}() : {constructor_initializers} {{
+        static_assert(std::is_trivially_copyable<{msg_name}>::value, 
+                      "Error: {msg_name} contains non-trivially copyable types! memcpy is unsafe.");
+    }}
 
     size_t get_serialized_size() const {{
 {smart_size_body}
