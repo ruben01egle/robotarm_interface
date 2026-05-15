@@ -44,6 +44,24 @@ add_custom_target(run_custom_build_script ALL
     COMMENT "Run build_cpp.py..."
 )
 
+add_library(protocol_headers INTERFACE)
+add_dependencies(protocol_headers run_custom_build_script)
+
+target_include_directories(protocol_headers INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_export_targets(export_protocol_headers HAS_LIBRARY_TARGET)
+
+install(DIRECTORY include/ DESTINATION include)
+
+install(TARGETS protocol_headers
+  EXPORT export_protocol_headers
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
