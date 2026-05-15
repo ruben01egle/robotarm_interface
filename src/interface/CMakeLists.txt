@@ -51,7 +51,6 @@ target_include_directories(protocol_headers INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-ament_export_targets(export_protocol_headers HAS_LIBRARY_TARGET)
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../include/ 
         DESTINATION include)
@@ -68,5 +67,9 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+ament_export_targets(export_protocol_headers HAS_LIBRARY_TARGET)
+ament_export_dependencies(rosidl_default_runtime)
+ament_export_dependencies(rosidl_default_generators)
 
 ament_package()
