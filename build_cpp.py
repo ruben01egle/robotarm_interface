@@ -123,7 +123,14 @@ def generate_hpp(msg_name, fields, constants):
 
     size_expr_parts = []
     serialize_parts = []
-    deserialize_parts = []
+    sequential_deserialize_parts = []
+    array_max_size_constants = []
+
+    # Mapping, um schnell herauszufinden, welcher Counter zu welchem Array gehört
+    counter_to_max_size = {}
+    for _, f_name, is_array, is_variable, max_size, counter_name, _ in fields:
+        if is_array and is_variable:
+            counter_to_max_size[counter_name] = (f"MAX_{f_name.upper()}_SIZE", max_size)
 
     for f_type, f_name, is_array, is_variable, max_size, counter_name, _ in fields:
         if f_type in TYPE_SIZES:
@@ -131,66 +138,90 @@ def generate_hpp(msg_name, fields, constants):
         else:
             element_size = f"sizeof({f_type})"
 
+        # --- SERIALIZE GENERIERUNG (SLOW PATH) ---
         if is_array:
             if is_variable:
                 size_expr_parts.append(f"({counter_name} * {element_size})")
                 if f_type in TYPE_SIZES:
                     serialize_parts.append(f"        std::memcpy(dest + offset, {f_name}, {counter_name} * {element_size});\n        offset += {counter_name} * {element_size};")
-                    deserialize_parts.append(f"        if (offset + {counter_name} * {element_size} > size) return false;\n        std::memcpy({f_name}, src + offset, {counter_name} * {element_size});\n        offset += {counter_name} * {element_size};")
                 else:
                     serialize_parts.append(f"        for(uint32_t i = 0; i < {counter_name}; ++i) {{\n            std::memcpy(dest + offset, &{f_name}[i], sizeof({f_type}));\n            offset += sizeof({f_type});\n        }}")
-                    deserialize_parts.append(f"        if (offset + {counter_name} * sizeof({f_type}) > size) return false;\n        for(uint32_t i = 0; i < {counter_name}; ++i) {{\n            std::memcpy(&{f_name}[i], src + offset, sizeof({f_type}));\n            offset += sizeof({f_type});\n        }}")
             else:
                 size_expr_parts.append(f"({max_size} * {element_size})")
                 serialize_parts.append(f"        std::memcpy(dest + offset, {f_name}, {max_size} * {element_size});\n        offset += {max_size} * {element_size};")
-                deserialize_parts.append(f"        if (offset + {max_size} * {element_size} > size) return false;\n        std::memcpy({f_name}, src + offset, {max_size} * {element_size});\n        offset += {max_size} * {element_size};")
         else:
             size_expr_parts.append(f"sizeof({f_type})")
             serialize_parts.append(f"        std::memcpy(dest + offset, &{f_name}, sizeof({f_type}));\n        offset += sizeof({f_type});")
-            deserialize_parts.append(f"        if (offset + sizeof({f_type}) > size) return false;\n        std::memcpy(&{f_name}, src + offset, sizeof({f_type}));\n        offset += sizeof({f_type});")
+
+        # --- DESERIALIZE GENERIERUNG (SLOW PATH - STRIKT SEQUENTIELL) ---
+        if is_array:
+            if is_variable:
+                if f_type in TYPE_SIZES:
+                    sequential_deserialize_parts.append(f"        if (offset + {counter_name} * {element_size} > size) return false;\n        std::memcpy({f_name}, src + offset, {counter_name} * {element_size});\n        offset += {counter_name} * {element_size};")
+                else:
+                    sequential_deserialize_parts.append(f"        if (offset + {counter_name} * sizeof({f_type}) > size) return false;\n        for(uint32_t i = 0; i < {counter_name}; ++i) {{\n            std::memcpy(&{f_name}[i], src + offset, sizeof({f_type}));\n            offset += sizeof({f_type});\n        }}")
+            else:
+                sequential_deserialize_parts.append(f"        if (offset + {max_size} * {element_size} > size) return false;\n        std::memcpy({f_name}, src + offset, {max_size} * {element_size});\n        offset += {max_size} * {element_size};")
+        else:
+            # Primitiv-Feld einlesen
+            sequential_deserialize_parts.append(f"        if (offset + sizeof({f_type}) > size) return false;\n        std::memcpy(&{f_name}, src + offset, sizeof({f_type}));\n        offset += sizeof({f_type});")
+            
+            # KORREKTUR: Wenn DIESES Primitiv-Feld ein Zähler für ein folgendes Array ist, JETZT SOFORT prüfen!
+            if f_name in counter_to_max_size:
+                const_macro_name, _ = counter_to_max_size[f_name]
+                sequential_deserialize_parts.append(f"        if ({f_name} > {const_macro_name}) return false;")
+
+    # Registriere die constexpr Definitionen für die Klassen-Kopfzeile
+    for _, (const_macro_name, max_size) in counter_to_max_size.items():
+        array_max_size_constants.append((const_macro_name, max_size))
 
     size_expression = " + ".join(size_expr_parts) if size_expr_parts else "0"
     serialize_body = "\n".join(serialize_parts)
-    deserialize_body = "\n".join(deserialize_parts)
+    deserialize_body = "\n".join(sequential_deserialize_parts)
 
-    # Generiere den intelligenten Serialize & Deserialize Body mit Fast-Path
     if has_variable_array:
-        # Finde Bedingung für volles Array (z.B. data_count == 5)
         fast_path_conditions = []
-        counter_corrections = ""
-        for _, _, _, is_variable, max_size, counter_name, _ in fields:
+        for _, f_name, _, is_variable, _, counter_name, _ in fields:
             if is_variable:
-                fast_path_conditions.append(f"{counter_name} == {max_size}")
-                counter_corrections += f"            {counter_name} = {max_size};\n"
+                fast_path_conditions.append(f"{counter_name} == MAX_{f_name.upper()}_SIZE")
 
         fast_path_cond_str = " && ".join(fast_path_conditions)
 
-        smart_serialize_body = f"""        // FAST-PATH: Wenn das Array komplett voll ist, die ganze Struktur am Stück kopieren!
+        # Logik für get_serialized_size()
+        smart_size_body = f"""        if ({fast_path_cond_str}) {{
+            return sizeof({msg_name});
+        }}
+        return {size_expression};"""
+
+        smart_serialize_body = f"""
         if ({fast_path_cond_str}) {{
             std::memcpy(dest, this, sizeof({msg_name}));
             return sizeof({msg_name});
         }}
 
-        // SLOW-PATH: Stückweise, variable Serialisierung
         size_t offset = 0;
-{serialize_body}"""
+{serialize_body}
+        return offset;"""
 
-        smart_deserialize_body = f"""        // FAST-PATH: Wenn der Stream die volle C++ Strukturgröße hat, direkt reinkopieren!
+        smart_deserialize_body = f"""
         if (size == sizeof({msg_name})) {{
             std::memcpy(this, src, sizeof({msg_name}));
-{counter_corrections}            return true;
+            return true;
         }}
 
-        // SLOW-PATH: Stückweises, variables Parsen
         size_t offset = 0;
-{deserialize_body}"""
+{deserialize_body}
+        return true;"""
     else:
-        # Wenn die Nachricht ohnehin FIXE Größe hat (kein variables Array)
+        smart_size_body = f"        return sizeof({msg_name});"
+        
         smart_serialize_body = f"""        std::memcpy(dest, this, sizeof({msg_name}));
         return sizeof({msg_name});"""
         
         smart_deserialize_body = f"""        if (size != sizeof({msg_name})) return false;
-        std::memcpy(this, src, sizeof({msg_name}));"""
+        std::memcpy(this, src, sizeof({msg_name}));
+        return true;"""
+        
 
     content = f"""#pragma once
 #include "ProtocolCommon.hpp"{include_str}
@@ -200,10 +231,12 @@ def generate_hpp(msg_name, fields, constants):
 class {msg_name} {{
 public:
 """
-    if constants:
+    if constants or array_max_size_constants:
         content += "    // Constants\n"
         for _, c_name, c_val in constants:
             content += f"    static constexpr uint32_t {c_name} = {c_val};\n"
+        for const_macro_name, max_size in array_max_size_constants:
+            content += f"    static constexpr uint32_t {const_macro_name} = {max_size};\n"
         content += "\n"
 
     content += "    // Message Fields\n"
@@ -217,17 +250,15 @@ public:
     {msg_name}() = default;
 
     size_t get_serialized_size() const {{
-        return {size_expression};
+{smart_size_body}
     }}
 
     size_t serialize(uint8_t* dest) const {{
 {smart_serialize_body}
-        return offset;
     }}
 
     bool deserialize(const uint8_t* src, size_t size) {{
 {smart_deserialize_body}
-        return true;
     }}
 }};
 #pragma pack(pop)
@@ -246,7 +277,7 @@ def main():
         msg_name = filename[:-4]
         fields, constants = parse_msg_file(os.path.join(MSG_DIR, filename))
         generate_hpp(msg_name, fields, constants)
-    print(f"Done! Symmetrischer Hybrid-Parser erfolgreich generiert.")
+    print(f"Generated headers in: {OUTPUT_DIR}")
 
 if __name__ == "__main__":
     main()
