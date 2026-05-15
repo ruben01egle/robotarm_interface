@@ -53,7 +53,7 @@ target_include_directories(protocol_headers INTERFACE
 )
 ament_export_targets(export_protocol_headers HAS_LIBRARY_TARGET)
 
-install(DIRECTORY include/ DESTINATION include)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
 
 install(TARGETS protocol_headers
   EXPORT export_protocol_headers
