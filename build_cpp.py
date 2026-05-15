@@ -119,7 +119,7 @@ def parse_msg_file(filepath):
                 cpp_type = TYPE_MAPPING.get(base_type, base_type)
                 
                 if is_variable:
-                    fields.append(("uint32_t", f"{field_name}_count", False, False, 0, "", "/* Auto-generated array counter */"))
+                    fields.append(("uint32_t", f"{field_name}_count", False, False, 0, "", "    // Auto-generated array counter"))
                     fields.append((cpp_type, f"{field_name}", True, True, int(size if size else 1), f"{field_name}_count", ""))
                 else:
                     fields.append((cpp_type, f"{field_name}", True, False, int(size if size else 1), "", ""))
