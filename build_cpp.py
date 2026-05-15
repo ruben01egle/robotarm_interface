@@ -175,8 +175,12 @@ def generate_hpp(msg_name, fields, constants):
                 initializer_list_parts.append(f"{f_name}(false)")
             elif f_type == "RosTimestamp":
                 initializer_list_parts.append(f"{f_name}{{0, 0}}")
-            else:
+            elif f_type in TYPE_SIZES:
+                # Es ist ein bekannter Primitivtyp (uint8_t, float, etc.) -> (0) ist fein
                 initializer_list_parts.append(f"{f_name}(0)")
+            else:
+                # Es ist eine andere generierte Message-Klasse (z.B. AxisData) -> {} nutzen!
+                initializer_list_parts.append(f"{f_name}{{}}")
 
         if is_array:
             if is_variable:
