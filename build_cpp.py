@@ -4,11 +4,10 @@ import re
 # --- Konfiguration ---
 MSG_DIR = "./src/interface/msg"
 OUTPUT_DIR = "./include/protocol"
-MAGIC_BYTE = 0xAA
+MAGIC_BYTE = 0x6666
 
 DEBUG_MODE = False
 
-# Erweiterung um 'Time' und 'builtin_interfaces/Time'
 TYPE_MAPPING = {
     'uint8': 'uint8_t',
     'uint16': 'uint16_t',
@@ -33,22 +32,41 @@ TYPE_SIZES = {
     'RosTimestamp': '8'
 }
 
-def create_common_header():
+def camel_to_snake(name):
+    # Hilfsfunktion, um z.B. TrajectoryBatch zu TRAJECTORY_BATCH für das Enum umzuwandeln
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).upper()
+
+def create_common_header(msg_names):
+    # Generiere die Enum-Einträge dynamisch basierend auf den gefundenen Dateien
+    enum_entries = ["    UNKNOWN = 0"]
+    for i, msg_name in enumerate(sorted(msg_names), start=1):
+        enum_name = camel_to_snake(msg_name)
+        enum_entries.append(f"    {enum_name} = {i}")
+    
+    enum_str = ",\n".join(enum_entries)
+
     content = f"""#pragma once
 #include <cstdint>
 #include <cstring>
 
 #pragma pack(push, 1)
+
+// Automatically generated message types
+enum class MessageType : uint32_t {{
+{enum_str}
+}};
+
 struct RosTimestamp {{
     uint32_t sec;
     uint32_t nsec;
 }};
 
 struct PacketHeader {{
-    uint8_t magic = {hex(MAGIC_BYTE)};
-    uint8_t msg_type;
-    uint32_t msg_id;
-    uint32_t payload_size;
+    uint32_t    magic = {hex(MAGIC_BYTE)};
+    MessageType msg_type;
+    uint32_t    msg_id;
+    uint32_t    payload_size;
 }};
 #pragma pack(pop)
 """
@@ -89,7 +107,6 @@ def parse_msg_file(filepath):
             array_match = re.search(r'([^\[\]]+)\[(<=)?(\d*)\]', ros_full_type)
             
             if array_match:
-                # Erst im gesamten Mapping suchen, falls Namespace enthalten ist
                 base_type = ros_full_type
                 if base_type not in TYPE_MAPPING:
                     base_type = array_match.group(1).split('/')[-1].strip()
@@ -105,7 +122,6 @@ def parse_msg_file(filepath):
                 else:
                     fields.append((cpp_type, f"{field_name}", True, False, int(size if size else 1), "", ""))
             else:
-                # Erst voll aufgelöst prüfen, dann erst splitten
                 if ros_full_type in TYPE_MAPPING:
                     cpp_type = TYPE_MAPPING[ros_full_type]
                 else:
@@ -291,13 +307,25 @@ public:
 def main():
     if not os.path.exists(OUTPUT_DIR): 
         os.makedirs(OUTPUT_DIR)
-    create_common_header()
+        
+    # 1. Scanne zuerst alle verfügbaren .msg-Dateien, um die Namen für das Enum zu kennen
+    if not os.path.exists(MSG_DIR):
+        print(f"Error: MSG_DIR '{MSG_DIR}' does not exist.")
+        return
+        
     msg_files = [f for f in os.listdir(MSG_DIR) if f.endswith(".msg")]
+    msg_names = [filename[:-4] for filename in msg_files]
+    
+    # 2. Erstelle die gemeinsame ProtocolCommon.hpp mit dem dynamischen Enum
+    create_common_header(msg_names)
+    
+    # 3. Generiere die einzelnen C++ Klassen-Header
     for filename in msg_files:
         msg_name = filename[:-4]
         fields, constants = parse_msg_file(os.path.join(MSG_DIR, filename))
         generate_hpp(msg_name, fields, constants)
-    print(f"Generated headers in: {OUTPUT_DIR}")
+        
+    print(f"Generated common header and {len(msg_files)} message classes in: {OUTPUT_DIR}")
 
 if __name__ == "__main__":
     main()
