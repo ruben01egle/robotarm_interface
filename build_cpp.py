@@ -33,12 +33,10 @@ TYPE_SIZES = {
 }
 
 def camel_to_snake(name):
-    # Hilfsfunktion, um z.B. TrajectoryBatch zu TRAJECTORY_BATCH für das Enum umzuwandeln
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).upper()
 
 def create_common_header(msg_names):
-    # Generiere die Enum-Einträge dynamisch basierend auf den gefundenen Dateien
     enum_entries = ["    UNKNOWN = 0"]
     for i, msg_name in enumerate(sorted(msg_names), start=1):
         enum_name = camel_to_snake(msg_name)
@@ -157,10 +155,14 @@ def generate_hpp(msg_name, fields, constants):
     array_max_size_constants = []
     initializer_list_parts = []
 
-    counter_to_max_size = {}
+    # --- ÄNDERUNG: Erfasse JETZT ALLE Arrays für die Konstanten-Generierung ---
     for _, f_name, is_array, is_variable, max_size, counter_name, _ in fields:
         if is_array and is_variable:
-            counter_to_max_size[counter_name] = (f"MAX_{f_name.upper()}_SIZE", max_size)
+            const_macro_name = f"MAX_{f_name.upper()}_SIZE"
+            array_max_size_constants.append((const_macro_name, max_size))
+        elif is_array:
+            const_macro_name = f"{f_name.upper()}_SIZE"
+            array_max_size_constants.append((const_macro_name, max_size))
 
     for f_type, f_name, is_array, is_variable, max_size, counter_name, _ in fields:
         if f_type in TYPE_SIZES:
@@ -176,10 +178,8 @@ def generate_hpp(msg_name, fields, constants):
             elif f_type == "RosTimestamp":
                 initializer_list_parts.append(f"{f_name}{{0, 0}}")
             elif f_type in TYPE_SIZES:
-                # Es ist ein bekannter Primitivtyp (uint8_t, float, etc.) -> (0) ist fein
                 initializer_list_parts.append(f"{f_name}(0)")
             else:
-                # Es ist eine andere generierte Message-Klasse (z.B. AxisData) -> {} nutzen!
                 initializer_list_parts.append(f"{f_name}{{}}")
 
         if is_array:
@@ -190,8 +190,9 @@ def generate_hpp(msg_name, fields, constants):
                 else:
                     serialize_parts.append(f"        for(uint32_t i = 0; i < {counter_name}; ++i) {{\n            std::memcpy(dest + offset, &{f_name}[i], sizeof({f_type}));\n            offset += sizeof({f_type});\n        }}")
             else:
-                size_expr_parts.append(f"({max_size} * {element_size})")
-                serialize_parts.append(f"        std::memcpy(dest + offset, {f_name}, {max_size} * {element_size});\n        offset += {max_size} * {element_size};")
+                # Nutze hier nun die generierte Konstante statt der rohen Zahl für die Lesbarkeit im Code
+                size_expr_parts.append(f"(MAX_{f_name.upper()}_SIZE * {element_size})")
+                serialize_parts.append(f"        std::memcpy(dest + offset, {f_name}, MAX_{f_name.upper()}_SIZE * {element_size});\n        offset += MAX_{f_name.upper()}_SIZE * {element_size};")
         else:
             size_expr_parts.append(f"sizeof({f_type})")
             serialize_parts.append(f"        std::memcpy(dest + offset, &{f_name}, sizeof({f_type}));\n        offset += sizeof({f_type});")
@@ -203,16 +204,15 @@ def generate_hpp(msg_name, fields, constants):
                 else:
                     sequential_deserialize_parts.append(f"        if (offset + {counter_name} * sizeof({f_type}) > size) return false;\n        for(uint32_t i = 0; i < {counter_name}; ++i) {{\n            std::memcpy(&{f_name}[i], src + offset, sizeof({f_type}));\n            offset += sizeof({f_type});\n        }}")
             else:
-                sequential_deserialize_parts.append(f"        if (offset + {max_size} * {element_size} > size) return false;\n        std::memcpy({f_name}, src + offset, {max_size} * {element_size});\n        offset += {max_size} * {element_size};")
+                sequential_deserialize_parts.append(f"        if (offset + MAX_{f_name.upper()}_SIZE * {element_size} > size) return false;\n        std::memcpy({f_name}, src + offset, MAX_{f_name.upper()}_SIZE * {element_size});\n        offset += MAX_{f_name.upper()}_SIZE * {element_size};")
         else:
             sequential_deserialize_parts.append(f"        if (offset + sizeof({f_type}) > size) return false;\n        std::memcpy(&{f_name}, src + offset, sizeof({f_type}));\n        offset += sizeof({f_type});")
             
-            if f_name in counter_to_max_size:
-                const_macro_name, _ = counter_to_max_size[f_name]
-                sequential_deserialize_parts.append(f"        if ({f_name} > {const_macro_name}) return false;")
-
-    for _, (const_macro_name, max_size) in counter_to_max_size.items():
-        array_max_size_constants.append((const_macro_name, max_size))
+            # Überprüfung, ob dieses Feld ein Counter für ein variables Array ist
+            # Sucht, ob für counter_name == f_name ein variables Array existiert
+            for _, arr_name, arr_is_array, arr_is_variable, _, arr_counter_name, _ in fields:
+                if arr_is_array and arr_is_variable and arr_counter_name == f_name:
+                    sequential_deserialize_parts.append(f"        if ({f_name} > MAX_{arr_name.upper()}_SIZE) return false;")
 
     size_expression = " + ".join(size_expr_parts) if size_expr_parts else "0"
     serialize_body = "\n".join(serialize_parts)
@@ -278,10 +278,13 @@ public:
         content += "\n"
 
     content += "    // Message Fields\n"
-    for f_type, f_name, is_array, _, max_size, _, comment in fields:
+    for f_type, f_name, is_array, is_variable, max_size, _, comment in fields:
         comment_str = f" {comment}" if comment else ""
-        if is_array:
-            content += f"    {f_type} {f_name}[{max_size}];{comment_str}\n"
+        if is_array and is_variable:
+            # Nutze auch bei der Definition des Member-Arrays die saubere Konstante
+            content += f"    {f_type} {f_name}[MAX_{f_name.upper()}_SIZE];{comment_str}\n"
+        elif is_array:
+            content += f"    {f_type} {f_name}[{f_name.upper()}_SIZE];{comment_str}\n"
         else:
             content += f"    {f_type} {f_name};{comment_str}\n"
 
@@ -314,7 +317,6 @@ def main():
     if not os.path.exists(OUTPUT_DIR): 
         os.makedirs(OUTPUT_DIR)
         
-    # 1. Scanne zuerst alle verfügbaren .msg-Dateien, um die Namen für das Enum zu kennen
     if not os.path.exists(MSG_DIR):
         print(f"Error: MSG_DIR '{MSG_DIR}' does not exist.")
         return
@@ -322,10 +324,8 @@ def main():
     msg_files = [f for f in os.listdir(MSG_DIR) if f.endswith(".msg")]
     msg_names = [filename[:-4] for filename in msg_files]
     
-    # 2. Erstelle die gemeinsame ProtocolCommon.hpp mit dem dynamischen Enum
     create_common_header(msg_names)
     
-    # 3. Generiere die einzelnen C++ Klassen-Header
     for filename in msg_files:
         msg_name = filename[:-4]
         fields, constants = parse_msg_file(os.path.join(MSG_DIR, filename))
