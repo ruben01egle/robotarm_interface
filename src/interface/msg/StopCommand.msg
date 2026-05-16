@@ -1,6 +1,0 @@
-uint32 TYPE_NONE = 0
-uint32 TYPE_SOFT_STOP = 1
-uint32 TYPE_HARD_STOP = 2
-uint32 TYPE_EMERGENCY = 3
-
-uint32 stop_type
