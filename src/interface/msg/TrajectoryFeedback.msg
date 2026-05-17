@@ -1,6 +1,7 @@
 uint32 REQUEST_DATA = 1
 uint32 START_ACK    = 2
 uint32 END_REACHED  = 3
+uint32 ERROR        = 4
 
 uint32 trajectory_id
 uint32 trajectory_status
