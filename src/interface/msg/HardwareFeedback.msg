@@ -1,4 +1,3 @@
-uint32 REQUEST = 0
 uint32 RESPONSE = 1
 uint32 OVERRIDE = 2
 
