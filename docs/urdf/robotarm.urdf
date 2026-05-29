@@ -29,7 +29,7 @@
         <mesh filename="meshes/Base_1.stl"/>
       </geometry>
       <material name="Base_1-material">
-        <color rgba="1 0 1 1"/>
+        <color rgba="0.1 0.1 0.1 1"/>
       </material>
     </visual>
     <collision name="Base_1_collision">
@@ -51,7 +51,7 @@
         <mesh filename="meshes/Shoulder_1.stl"/>
       </geometry>
       <material name="Shoulder_1-material">
-        <color rgba="0 0 1 1"/>
+        <color rgba="0.1 0.1 0.1 1"/>
       </material>
     </visual>
     <collision name="Shoulder_1_collision">
@@ -73,7 +73,7 @@
         <mesh filename="meshes/Elbow_1.stl"/>
       </geometry>
       <material name="Elbow_1-material">
-        <color rgba="1 0 0 1"/>
+        <color rgba="0.1 0.1 0.1 1"/>
       </material>
     </visual>
     <collision name="Elbow_1_collision">
@@ -95,7 +95,7 @@
         <mesh filename="meshes/Forearm_1.stl"/>
       </geometry>
       <material name="Forearm_1-material">
-        <color rgba="1 0.5 0 1"/>
+        <color rgba="0.1 0.1 0.1 1"/>
       </material>
     </visual>
     <collision name="Forearm_1_collision">
@@ -119,21 +119,21 @@
     <origin xyz="9.2668454e-31 6.069348e-19 0.137" rpy="-1.4734871e-18 0 -5.5511151e-17"/>
     <parent link="Base_1"/>
     <child link="Shoulder_1"/>
-    <axis xyz="0 0 -1"/>
-    <limit effort="1" velocity="1" lower="-6.2831853" upper="6.2831853"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="8" velocity="25" lower="-2.80" upper="2.80"/>
   </joint>
   <joint name="axis2" type="revolute">
     <origin xyz="0.025 0.094 0.213" rpy="-1.5707963 1.5707963 0"/>
     <parent link="Shoulder_1"/>
     <child link="Elbow_1"/>
-    <axis xyz="0 0 -1"/>
-    <limit effort="1" velocity="1" lower="-6.2831853" upper="6.2831853"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="30" velocity="25" lower="-2.80" upper="0.35"/>
   </joint>
   <joint name="axis3" type="revolute">
     <origin xyz="0.0002 -0.3 0.004" rpy="0 0 -1.5707963"/>
     <parent link="Elbow_1"/>
     <child link="Forearm_1"/>
-    <axis xyz="0 0 -1"/>
-    <limit effort="1" velocity="1" lower="-6.2831853" upper="6.2831853"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="12" velocity="25" lower="-2.01" upper="2.36"/>
   </joint>
 </robot>
