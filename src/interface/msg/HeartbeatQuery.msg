@@ -1,2 +1,0 @@
-uint32 query_id
-builtin_interfaces/Time sent_timestamp
