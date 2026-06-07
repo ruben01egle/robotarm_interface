@@ -12,6 +12,7 @@ find_package(builtin_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/RequestAction.srv"
+  "msg/SystemStatus.msg"
   DEPENDENCIES builtin_interfaces std_msgs
 )
 
