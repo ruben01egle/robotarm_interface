@@ -1,4 +1,4 @@
 float64 data
 ---
-bool succes
+bool success
 string message
