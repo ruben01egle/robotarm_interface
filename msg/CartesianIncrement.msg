@@ -1,7 +1,6 @@
 # robotarm_interface/msg/CartesianIncrement.msg
 # Relative step of the TCP. linear in m, angular in rad (per axis, not a rotation vector).
 # header.frame_id selects the frame like for twist_cmds: '' or base link → base, tcp → tool.
-# Components above max_increment_linear / max_increment_angular reject the whole message.
 
 std_msgs/Header header
 geometry_msgs/Vector3 linear
