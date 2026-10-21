@@ -11,7 +11,7 @@ uint32 TYPE_STOP = 255
 string node_name        # who asks
 uint32 action_id        # what action
 uint32 request_type     # Start or Stop?
-string controller_names # which ros2_controller should be activated
+string[] controller_names # which ros2_controllers should be activated together (one switch request)
 ---
 # Response
 bool success          # was the request granted?
