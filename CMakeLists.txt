@@ -15,7 +15,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/RequestAction.srv"
   "msg/SystemStatus.msg"
   "msg/CartesianIncrement.msg"
-  "msg/CartesianStiffness.msg"
   "srv/SetFloat64.srv"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )
