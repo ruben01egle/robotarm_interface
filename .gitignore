@@ -1,5 +1,4 @@
 .vscode
-/include/protocol
 build/
 install/
 log/
