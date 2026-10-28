@@ -1,0 +1,6 @@
+# Delete a goal from the motion_server goals file (not possible while a program uses it).
+
+string name
+---
+bool success
+string message

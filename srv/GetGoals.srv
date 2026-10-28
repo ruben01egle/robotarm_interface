@@ -1,0 +1,7 @@
+# Goals (including the SRDF named states) and programs of the motion_server goals file.
+---
+bool success
+string message
+string goals_file
+MotionGoal[] goals
+MotionProgram[] programs

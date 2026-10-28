@@ -1,0 +1,9 @@
+# Save the current robot pose as a goal in the motion_server goals file.
+
+string name
+bool cartesian      # false: joint goal; true: tcp pose with the current joints as IK seed
+bool overwrite      # replace an existing goal of the same name
+---
+bool success
+string message
+MotionGoal goal

@@ -16,6 +16,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SystemStatus.msg"
   "msg/CartesianIncrement.msg"
   "srv/SetFloat64.srv"
+  "msg/MotionGoal.msg"
+  "msg/MotionStep.msg"
+  "msg/MotionProgram.msg"
+  "srv/GetGoals.srv"
+  "srv/TeachGoal.srv"
+  "srv/RemoveGoal.srv"
   "action/RunMotion.action"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )
