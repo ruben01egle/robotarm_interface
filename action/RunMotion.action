@@ -1,11 +1,12 @@
 # Plan and (optionally) execute a motion through the motion_server (robotarm_motion), which runs
-# MoveIt trajectories inside its own control_center mission. Exactly one of program / goal must be
-# set; both refer to the goals file of the motion_server.
+# MoveIt trajectories inside its own control_center mission. Exactly one of program / goal / steps
+# must be set; goal names refer to the goals file of the motion_server.
 
 # Goal
 string program        # name of a program in the goals file
 string goal           # or: a single goal (goals file or SRDF named state)
 string motion         # with goal: PTP (default), LIN or OMPL
+MotionStep[] steps    # or: the steps of an unsaved program (e.g. the GUI's draft)
 float64 scaling       # velocity/acceleration scaling (0..1], 0 = the server's default_scaling
 bool plan_only        # plan the whole job and show it in RViz, do not move
 ---
@@ -14,8 +15,12 @@ bool success
 string message
 float64 duration      # [s] planned duration of the whole job
 int32 segments        # number of separately executed trajectories (OMPL steps split the job)
+int32 failed_step_from  # 1-based steps of the segment that failed, 0 = none or not step related
+int32 failed_step_to
 ---
 # Feedback
 string phase          # PLANNING, STARTING_MISSION, EXECUTING, STOPPING_MISSION
 int32 segment         # 1-based index of the executing segment
 int32 segments
+int32 step_from       # 1-based steps of the executing segment
+int32 step_to

@@ -1,0 +1,8 @@
+# Delete a program from the motion_server goals file.
+
+string name
+bool remove_unused_goals  # also delete its auto-named goals (<name>_p<N>) that nothing else uses
+---
+bool success
+string message
+string[] removed_goals

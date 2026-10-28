@@ -1,6 +1,8 @@
-# Save the current robot pose as a goal in the motion_server goals file.
+# Save the current robot pose as a goal in the motion_server goals file. Refused while a job runs
+# or while the robot moves.
 
-string name
+string name         # empty: the next free name <prefix><N>
+string prefix       # with an empty name: prefix of the generated name (empty = "p")
 bool cartesian      # false: joint goal; true: tcp pose with the current joints as IK seed
 bool overwrite      # replace an existing goal of the same name
 ---

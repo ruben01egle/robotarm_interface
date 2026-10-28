@@ -1,0 +1,10 @@
+# Create or replace a program of the motion_server goals file.
+
+string name
+MotionStep[] steps
+bool overwrite      # replace an existing program of the same name
+---
+bool success
+string message
+string[] warnings   # e.g. blend radii that will not work; the program is saved anyway
+int32 bad_step      # 1-based step of the first error or warning, 0 = none

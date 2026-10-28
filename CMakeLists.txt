@@ -22,6 +22,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GetGoals.srv"
   "srv/TeachGoal.srv"
   "srv/RemoveGoal.srv"
+  "srv/SetGoal.srv"
+  "srv/SetProgram.srv"
+  "srv/RemoveProgram.srv"
   "action/RunMotion.action"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )

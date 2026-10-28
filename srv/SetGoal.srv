@@ -1,0 +1,8 @@
+# Create or change a goal of the motion_server goals file from given values.
+
+MotionGoal goal     # source is ignored (always the goals file)
+bool overwrite      # replace an existing goal of the same name
+---
+bool success
+string message
+MotionGoal goal
