@@ -1,0 +1,6 @@
+# Switch the arm to a mode. The firmware performs all controller and hardware switching.
+RobotarmMode target
+---
+bool success
+string message        # reason on failure
+RobotarmMode mode     # mode after the request, also on failure

@@ -26,6 +26,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SetProgram.srv"
   "srv/RemoveProgram.srv"
   "action/RunMotion.action"
+  "msg/RobotarmMode.msg"
+  "srv/SetMode.srv"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )
 
