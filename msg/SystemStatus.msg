@@ -14,4 +14,4 @@ bool connected
 bool armed
 bool stopped
 string active_node              # node that owns the running mission, empty = none
-string[] active_controllers     # controller set of the running mission
+RobotarmMode mode               # actual mode reported by the firmware mode manager
